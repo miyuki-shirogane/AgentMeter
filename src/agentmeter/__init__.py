@@ -15,6 +15,7 @@ from agentmeter.core.trace import (
 )
 from agentmeter.core.verdict import Score, Verdict
 from agentmeter.evaluators.base import Evaluator
+from agentmeter.evaluators.judge import LLMJudgeEvaluator
 from agentmeter.evaluators.output import (
     OutputContainsEvaluator,
     OutputEqualsEvaluator,
@@ -34,6 +35,9 @@ from agentmeter.evaluators.trajectory import (
     RequiredToolEvaluator,
     ToolOrderEvaluator,
 )
+from agentmeter.judge.base import JudgeError, JudgeProvider
+from agentmeter.judge.openai import OpenAIJudgeProvider
+from agentmeter.judge.result import JudgeResult
 from agentmeter.runner.runner import Runner
 
 __all__ = [
@@ -53,6 +57,7 @@ __all__ = [
     "Score",
     "Verdict",
     "Evaluator",
+    "LLMJudgeEvaluator",
     "OutputContainsEvaluator",
     "OutputEqualsEvaluator",
     "OutputNotContainsEvaluator",
@@ -66,7 +71,11 @@ __all__ = [
     "MaximumToolCallsEvaluator",
     "RequiredToolEvaluator",
     "ToolOrderEvaluator",
+    "JudgeError",
+    "JudgeProvider",
+    "JudgeResult",
+    "OpenAIJudgeProvider",
     "Runner",
 ]
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
