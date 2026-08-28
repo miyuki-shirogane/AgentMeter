@@ -18,6 +18,9 @@ uv.lock
 .idea/
 .vscode/
 
+# Secrets
+.env
+
 # OS
 .DS_Store
 
