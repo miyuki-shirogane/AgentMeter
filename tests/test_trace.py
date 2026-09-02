@@ -67,7 +67,44 @@ def test_trace_metadata_defaults_to_empty_dict():
     assert Trace(input="x").metadata == {}
 
 
-def test_tool_events_are_reserved_but_valid():
+# ---- Phase 4: environment / state / reward events -------------------------
+
+def test_environment_events_round_trip():
+    from agentmeter import (
+        ActionEvent,
+        EnvironmentEvent,
+        RewardEvent,
+        StateChangeEvent,
+        StateSnapshotEvent,
+    )
+
+    trace = Trace(input="defeat the goblin")
+    trace.add_event(ActionEvent(name="attack", arguments={"target": "boss"}))
+    trace.add_event(EnvironmentEvent(source="OrderEnvironment", data={"observation": "added"}))
+    trace.add_event(
+        StateChangeEvent(action_id="a1", changes={"boss": {"hp": 0, "status": "dead"}})
+    )
+    trace.add_event(StateSnapshotEvent(state={"boss": {"status": "dead"}, "reward": 100}))
+    trace.add_event(RewardEvent(value=100))
+
+    restored = Trace.model_validate_json(trace.model_dump_json())
+    assert isinstance(restored.events[0], ActionEvent)
+    assert isinstance(restored.events[1], EnvironmentEvent)
+    assert isinstance(restored.events[2], StateChangeEvent)
+    assert isinstance(restored.events[3], StateSnapshotEvent)
+    assert isinstance(restored.events[4], RewardEvent)
+    assert restored.final_state == {"boss": {"status": "dead"}, "reward": 100}
+    assert restored.action_names() == ["attack"]
+    assert [r.value for r in restored.rewards()] == [100]
+
+
+def test_trace_action_event_generates_unique_id():
+    from agentmeter import ActionEvent
+
+    assert ActionEvent(name="attack").action_id != ActionEvent(name="attack").action_id
+
+
+def test_trace_tool_events_are_reserved_but_valid():
     call = ToolCallEvent(name="search", arguments={"q": "ai"})
     trace = Trace(input="query")
     trace.add_event(call)

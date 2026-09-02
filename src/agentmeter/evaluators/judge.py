@@ -10,7 +10,13 @@ needs natural-language reasoning.
 from __future__ import annotations
 
 from agentmeter.core.results import EvaluationResult
-from agentmeter.core.trace import ToolCallEvent, ToolResultEvent, Trace
+from agentmeter.core.trace import (
+    ActionEvent,
+    StateSnapshotEvent,
+    ToolCallEvent,
+    ToolResultEvent,
+    Trace,
+)
 from agentmeter.core.verdict import Verdict
 from agentmeter.evaluators.base import Evaluator
 from agentmeter.judge.base import JudgeError, JudgeProvider
@@ -24,6 +30,10 @@ def _summarize_trace(trace: Trace) -> str | None:
             lines.append(f"tool_call: {event.name}({event.arguments})")
         elif isinstance(event, ToolResultEvent):
             lines.append(f"tool_result: {event.name} -> {event.result}")
+        elif isinstance(event, ActionEvent):
+            lines.append(f"action: {event.name}({event.arguments})")
+        elif isinstance(event, StateSnapshotEvent):
+            lines.append(f"state: {event.state}")
     return "\n".join(lines) or None
 
 

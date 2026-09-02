@@ -2,11 +2,17 @@
 
 from agentmeter.adapters.base import AgentAdapter
 from agentmeter.adapters.callable import CallableAgentAdapter
+from agentmeter.adapters.environment import EnvironmentAgentAdapter
 from agentmeter.core.models import TestCase
 from agentmeter.core.results import AggregateResult, EvaluationResult, TestRunResult
 from agentmeter.core.trace import (
+    ActionEvent,
     AgentMessageEvent,
     CustomEvent,
+    EnvironmentEvent,
+    RewardEvent,
+    StateChangeEvent,
+    StateSnapshotEvent,
     ToolCallEvent,
     ToolResultEvent,
     Trace,
@@ -14,6 +20,13 @@ from agentmeter.core.trace import (
     UserMessageEvent,
 )
 from agentmeter.core.verdict import Score, Verdict
+from agentmeter.environments.base import Action, ActionResult, Environment, State
+from agentmeter.evaluators.action import (
+    ActionArgumentEvaluator,
+    ActionCalledEvaluator,
+    ActionNotCalledEvaluator,
+    ActionOrderEvaluator,
+)
 from agentmeter.evaluators.base import Evaluator
 from agentmeter.evaluators.judge import LLMJudgeEvaluator
 from agentmeter.evaluators.output import (
@@ -21,6 +34,13 @@ from agentmeter.evaluators.output import (
     OutputEqualsEvaluator,
     OutputNotContainsEvaluator,
     OutputRegexEvaluator,
+)
+from agentmeter.evaluators.state import (
+    RewardEvaluator,
+    StateEvaluator,
+    StateOperator,
+    compare_value,
+    make_state_predicate,
 )
 from agentmeter.evaluators.tool import (
     ToolArgumentEvaluator,
@@ -43,17 +63,31 @@ from agentmeter.runner.runner import Runner
 __all__ = [
     "AgentAdapter",
     "CallableAgentAdapter",
+    "EnvironmentAgentAdapter",
     "TestCase",
     "AggregateResult",
     "EvaluationResult",
     "TestRunResult",
+    "ActionEvent",
     "AgentMessageEvent",
     "CustomEvent",
+    "EnvironmentEvent",
+    "RewardEvent",
+    "StateChangeEvent",
+    "StateSnapshotEvent",
     "ToolCallEvent",
     "ToolResultEvent",
     "Trace",
     "TraceEvent",
     "UserMessageEvent",
+    "Action",
+    "ActionResult",
+    "Environment",
+    "State",
+    "ActionArgumentEvaluator",
+    "ActionCalledEvaluator",
+    "ActionNotCalledEvaluator",
+    "ActionOrderEvaluator",
     "Score",
     "Verdict",
     "Evaluator",
@@ -62,6 +96,11 @@ __all__ = [
     "OutputEqualsEvaluator",
     "OutputNotContainsEvaluator",
     "OutputRegexEvaluator",
+    "RewardEvaluator",
+    "StateEvaluator",
+    "StateOperator",
+    "compare_value",
+    "make_state_predicate",
     "ToolArgumentEvaluator",
     "ToolCallCountEvaluator",
     "ToolCallCountMode",
@@ -78,4 +117,4 @@ __all__ = [
     "Runner",
 ]
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
