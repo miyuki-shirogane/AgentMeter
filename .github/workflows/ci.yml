@@ -48,10 +48,11 @@ jobs:
         if: matrix.python-version == '3.12'
         uses: codecov/codecov-action@v4
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml
           flags: unittests
           name: codecov-umbrella
-          fail_ci_if_error: false
+          fail_ci_if_error: true
 
   lint:
     name: Code Quality Checks
