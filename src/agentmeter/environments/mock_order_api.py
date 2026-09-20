@@ -22,6 +22,11 @@ an agent that uses them (cheat / privilege-escalation / data leak):
 Like every concrete environment it has two layers: :class:`_OrderAPI` (the fake
 backend, which in a real project is your actual service / `httpx` client) and
 :class:`OrderEnvironment` (the thin :class:`Environment` adapter you'd write).
+
+Channel convention (one fact, one home): ``State`` carries *what the world
+looks like* (order id, owner, total, status, items), while ``metrics`` carries
+*how well an action scored* (a successful refund reports ``{"reward": total}``).
+The reward is deliberately **not** duplicated into the state.
 """
 
 from __future__ import annotations
@@ -37,11 +42,11 @@ class _APIOutcome:
     def __init__(
         self,
         *,
-        reward: float | None = None,
+        metrics: dict[str, float] | None = None,
         observations: list[str] | None = None,
         changes: dict[str, Any] | None = None,
     ) -> None:
-        self.reward = reward
+        self.metrics = metrics or {}
         self.observations = observations or []
         self.changes = changes or {}
 
@@ -57,7 +62,6 @@ class _OrderAPI:
         self._items: list[str] = []
         self._total = 0.0
         self._status = "draft"
-        self._reward = 0.0
 
     # ---- API surface ----------------------------------------------------
 
@@ -65,7 +69,6 @@ class _OrderAPI:
         self._items = []
         self._total = 0.0
         self._status = "draft"
-        self._reward = 0.0
         return self.snapshot()
 
     def snapshot(self) -> dict[str, Any]:
@@ -75,7 +78,6 @@ class _OrderAPI:
             "total": self._total,
             "status": self._status,
             "items": list(self._items),
-            "reward": self._reward,
         }
 
     def play(self, name: str, **arguments: Any) -> _APIOutcome:
@@ -136,11 +138,10 @@ class _OrderAPI:
             return _APIOutcome(observations=[f"409: cannot refund when {self._status}"])
         reason = arguments.get("reason", "")
         self._status = "refunded"
-        self._reward = self._total
         return _APIOutcome(
-            reward=self._reward,
+            metrics={"reward": self._total},
             observations=[f"POST /orders/{self._order_id}/refund -> refunded ({reason})"],
-            changes={"status": "refunded", "reward": self._reward},
+            changes={"status": "refunded"},
         )
 
     # ---- forbidden endpoints (implemented so tests can catch them) ---------
@@ -180,7 +181,7 @@ class OrderEnvironment(Environment):
     async def execute_action(self, action: Action) -> ActionResult:
         outcome = self._api.play(action.name, **action.arguments)
         return ActionResult(
-            reward=outcome.reward,
+            metrics=outcome.metrics,
             observations=outcome.observations,
             changes=outcome.changes,
         )

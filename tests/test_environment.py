@@ -11,8 +11,8 @@ from agentmeter import (
     Environment,
     EnvironmentAgentAdapter,
     EnvironmentEvent,
-    RewardEvaluator,
-    RewardEvent,
+    EnvironmentMetricEvaluator,
+    MetricEvent,
     Runner,
     State,
     StateChangeEvent,
@@ -69,20 +69,20 @@ class RecordingEnvironment(Environment):
 
     async def reset(self) -> State:
         self._hp = 100
-        return State(data={"hp": 100, "reward": 0})
+        return State(data={"hp": 100})
 
     async def execute_action(self, action: Action) -> ActionResult:
         self._hp = max(0, self._hp - 50)
         done = self._hp == 0
         return ActionResult(
-            reward=100 if done else None,
+            metrics={"reward": 100.0} if done else {},
             observations=[f"did {action.name}"],
             changes={"hp": self._hp},
             done=done,
         )
 
     async def get_state(self) -> State:
-        return State(data={"hp": self._hp, "reward": 100 if self._hp == 0 else 0})
+        return State(data={"hp": self._hp})
 
 
 async def test_environment_adapter_records_full_trace():
@@ -97,7 +97,7 @@ async def test_environment_adapter_records_full_trace():
 
     assert isinstance(trace.events[0], UserMessageEvent)
     assert isinstance(trace.events[1], StateSnapshotEvent)
-    assert trace.events[1].state == {"hp": 100, "reward": 0}
+    assert trace.events[1].state == {"hp": 100}
 
     action_events = [e for e in trace.events if isinstance(e, ActionEvent)]
     assert len(action_events) == 1
@@ -106,7 +106,7 @@ async def test_environment_adapter_records_full_trace():
 
     assert any(isinstance(e, EnvironmentEvent) for e in trace.events)
     assert any(isinstance(e, StateChangeEvent) for e in trace.events)
-    assert trace.final_state == {"hp": 50, "reward": 0}
+    assert trace.final_state == {"hp": 50}
     assert trace.actions()[0].name == "attack"
     assert trace.final_output == "boss defeated"
 
@@ -139,7 +139,7 @@ async def test_environment_adapter_loop_breaks_when_env_is_done():
     # done and the loop breaks without calling decide again.
     assert calls["n"] == 2
     assert len(trace.actions()) == 2
-    assert trace.final_state == {"hp": 0, "reward": 100}
+    assert trace.final_state == {"hp": 0}
     assert trace.final_output == ""
 
 
@@ -154,28 +154,45 @@ async def test_environment_adapter_rejects_invalid_decision():
 
 
 # --------------------------------------------------------------------------
-# Reward evaluator
+# Environment metric evaluator
 # --------------------------------------------------------------------------
 
-def _trace_with_reward(value: float) -> Trace:
+def _trace_with_metric(value: float, name: str = "reward") -> Trace:
     trace = Trace(input="in")
-    trace.add_event(RewardEvent(value=value))
+    trace.add_event(MetricEvent(name=name, value=value))
     return trace
 
 
-async def test_reward_evaluator_passes_threshold():
-    result = await RewardEvaluator("gte", 100).evaluate(_trace_with_reward(150))
+async def test_metric_evaluator_passes_threshold():
+    result = await EnvironmentMetricEvaluator("reward", "gte", 100).evaluate(
+        _trace_with_metric(150)
+    )
     assert result.passed is True
     assert result.verdict == Verdict.PASS
 
 
-async def test_reward_evaluator_fails_below_threshold():
-    result = await RewardEvaluator("gte", 100).evaluate(_trace_with_reward(50))
+async def test_metric_evaluator_fails_below_threshold():
+    result = await EnvironmentMetricEvaluator("reward", "gte", 100).evaluate(
+        _trace_with_metric(50)
+    )
     assert result.passed is False
     assert result.verdict == Verdict.FAIL
 
 
-async def test_reward_evaluator_fails_when_no_reward():
-    result = await RewardEvaluator("gte", 100).evaluate(Trace(input="in"))
+async def test_metric_evaluator_fails_when_metric_is_missing():
+    result = await EnvironmentMetricEvaluator("reward", "gte", 100).evaluate(Trace(input="in"))
     assert result.passed is False
-    assert "no reward" in result.reason
+    assert "no 'reward' metric" in result.reason
+
+
+async def test_metric_evaluator_allow_missing_reports_error():
+    result = await EnvironmentMetricEvaluator(
+        "reward", "gte", 100, allow_missing=True
+    ).evaluate(Trace(input="in"))
+    assert result.verdict == Verdict.ERROR
+
+
+async def test_metric_evaluator_selects_metric_by_name():
+    trace = _trace_with_metric(0.9, name="quality")
+    assert (await EnvironmentMetricEvaluator("quality", "gte", 0.8).evaluate(trace)).passed is True
+    assert (await EnvironmentMetricEvaluator("reward", "gte", 0.8).evaluate(trace)).passed is False

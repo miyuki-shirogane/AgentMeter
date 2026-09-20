@@ -1,4 +1,4 @@
-"""Deterministic state and reward evaluators.
+"""Deterministic state and metric evaluators.
 
 State is generic structured data (``{"boss": {"status": "dead"}, "reward":
 100}``). A :class:`StateEvaluator` inspects the *final* state snapshot
@@ -7,10 +7,12 @@ recorded in a trace and checks a predicate over a nested path:
     StateEvaluator("boss.status", "eq", "dead")
     StateEvaluator("reward", "gte", 100)
 
-Operators cover field equality, inequality, numeric ordering, nester paths,
-and arbitrary custom predicates. Reward is optional and never forced into the
-core model: :class:`RewardEvaluator` simply reads the last ``reward`` event if
-the environment emitted one.
+Operators cover field equality, inequality, numeric ordering, nested paths,
+and arbitrary custom predicates.
+
+Metrics are a separate, optional channel: an environment may report named
+numeric metrics, and :class:`EnvironmentMetricEvaluator` reads the last value
+of one of them. Metrics are never forced into the core model.
 """
 
 from __future__ import annotations
@@ -30,7 +32,7 @@ StatePredicate = Callable[[StateData], bool]
 
 
 class StateOperator(StrEnum):
-    """Comparison operators supported by the state / reward evaluators."""
+    """Comparison operators supported by the state / metric evaluators."""
 
     EQ = "eq"
     NE = "ne"
@@ -164,36 +166,48 @@ class StateEvaluator(Evaluator):
         return f"{self._operator.value} {self._expected!r}"
 
 
-class RewardEvaluator(Evaluator):
-    """Passes when the last recorded reward satisfies an operator.
+class EnvironmentMetricEvaluator(Evaluator):
+    """Passes when the last recorded value of a named metric satisfies an operator.
 
-    Reward is optional: if the environment never emitted a reward event, this
-    evaluator reports a FAIL (the agent did not earn the expected reward).
+    Args:
+        name: the metric name, e.g. ``"reward"`` or ``"quality"``.
+        operator: a :class:`StateOperator` (or its string value).
+        expected: the expected value for the operator (ignored by ``exists``).
+        predicate: optional custom ``(value) -> bool``; overrides ``operator``.
+        allow_missing: when ``True``, a missing metric is reported as an ERROR
+            instead of a FAIL. Defaults to ``False`` (FAIL).
+
+    Metrics are optional: if the environment never emitted a metric with this
+    name, the evaluator reports a FAIL (the agent did not earn the expected
+    metric).
     """
 
     def __init__(
         self,
+        name: str,
         operator: StateOperator | str = StateOperator.GTE,
         expected: float = 0.0,
         *,
         predicate: Callable[[float], bool] | None = None,
+        allow_missing: bool = False,
     ) -> None:
+        self._name = name
         self._operator = StateOperator(operator)
         self._expected = expected
         self._predicate = predicate
+        self._allow_missing = allow_missing
 
     async def evaluate(self, trace: Trace) -> EvaluationResult:
-        rewards = trace.rewards()
-        if not rewards:
+        latest = trace.metric(self._name)
+        if latest is None:
             return EvaluationResult(
                 evaluator=type(self).__name__,
-                verdict=Verdict.FAIL,
+                verdict=Verdict.ERROR if self._allow_missing else Verdict.FAIL,
                 score=0.0,
-                reason="no reward event recorded in trace",
-                metadata={"operator": self._operator.value, "expected": self._expected},
+                reason=f"no {self._name!r} metric recorded in trace",
+                metadata={"metric": self._name},
             )
 
-        latest = rewards[-1].value
         if self._predicate is not None:
             passed = bool(self._predicate(latest))
         else:
@@ -205,9 +219,9 @@ class RewardEvaluator(Evaluator):
             else f"{self._operator.value} {self._expected}"
         )
         reason = (
-            f"reward {latest} matches {description}"
+            f"metric {self._name!r} = {latest} matches {description}"
             if passed
-            else f"reward {latest} does not match {description}"
+            else f"metric {self._name!r} = {latest} does not match {description}"
         )
         return EvaluationResult(
             evaluator=type(self).__name__,
@@ -215,7 +229,8 @@ class RewardEvaluator(Evaluator):
             score=1.0 if passed else 0.0,
             reason=reason,
             metadata={
-                "reward": latest,
+                "metric": self._name,
+                "value": latest,
                 "operator": self._operator.value,
                 "expected": self._expected,
             },

@@ -4,8 +4,8 @@ A plain chat agent produces text. A *task* agent is different: it keeps
 observing the environment state and issuing actions until it produces a final
 answer. This adapter translates that interaction loop into a standardized
 :class:`~agentmeter.core.trace.Trace`, recording every action, environment
-event, state snapshot, state change and reward along the way so the existing
-evaluators (tool, trajectory, state, reward, LLM judge) can inspect it.
+event, state snapshot, state change and metric along the way so the existing
+evaluators (tool, trajectory, state, metric, LLM judge) can inspect it.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from agentmeter.core.trace import (
     ActionEvent,
     AgentMessageEvent,
     EnvironmentEvent,
-    RewardEvent,
+    MetricEvent,
     StateChangeEvent,
     StateSnapshotEvent,
     Trace,
@@ -91,8 +91,8 @@ class EnvironmentAgentAdapter(AgentAdapter):
                     StateChangeEvent(action_id=action_id, changes=outcome.changes)
                 )
 
-            if outcome.reward is not None:
-                trace.add_event(RewardEvent(value=outcome.reward))
+            for name, value in outcome.metrics.items():
+                trace.add_event(MetricEvent(name=name, value=value))
 
             state = await self._environment.get_state()
             trace.add_event(StateSnapshotEvent(state=state.as_dict()))

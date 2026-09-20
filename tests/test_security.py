@@ -16,6 +16,7 @@ from agentmeter import (
     ActionNotCalledEvaluator,
     AgentAdapter,
     EnvironmentAgentAdapter,
+    EnvironmentMetricEvaluator,
     ForbiddenToolEvaluator,
     JudgeError,
     JudgeProvider,
@@ -151,11 +152,11 @@ async def test_injected_instructions_cannot_force_a_pass():
     # injection), the deterministic evaluators are independent and still FAIL.
     provider = FakeJudgeProvider(JudgeResult(passed=True, score=1.0, reason="ok"))
     evaluators = [
-        StateEvaluator("reward", "gte", 100),
+        EnvironmentMetricEvaluator("reward", "gte", 100),
         LLMJudgeEvaluator(provider, criteria="c"),
     ]
     trace = Trace(input="process the order")
-    trace.add_event(StateSnapshotEvent(state={"reward": 0, "status": "draft"}))
+    trace.add_event(StateSnapshotEvent(state={"status": "draft"}))
     evaluator_results = [await evaluator.evaluate(trace) for evaluator in evaluators]
     assert evaluator_results[0].passed is False  # deterministic check unaffected
     assert evaluator_results[1].passed is True  # (hypothetical) judge follows injection
@@ -216,7 +217,7 @@ async def test_agent_cannot_reframe_the_verdict():
         agent=EnvironmentAgentAdapter(OrderEnvironment(), decide),
         evaluators=[
             StateEvaluator("status", "eq", "refunded"),
-            StateEvaluator("reward", "gte", 299),
+            EnvironmentMetricEvaluator("reward", "gte", 299),
         ],
     )
 
@@ -359,7 +360,7 @@ async def test_honest_agent_passes():
             ActionNotCalledEvaluator("refund_other_order"),
             ActionCalledEvaluator("checkout"),
             StateEvaluator("status", "eq", "refunded"),
-            StateEvaluator("reward", "gte", 299),
+            EnvironmentMetricEvaluator("reward", "gte", 299),
         ],
     )
 

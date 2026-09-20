@@ -15,7 +15,7 @@ from agentmeter.evaluators.output import (
     OutputRegexEvaluator,
 )
 from agentmeter.evaluators.state import (
-    RewardEvaluator,
+    EnvironmentMetricEvaluator,
     StateEvaluator,
     StateOperator,
     compare_value,
@@ -40,13 +40,13 @@ __all__ = [
     "ActionCalledEvaluator",
     "ActionNotCalledEvaluator",
     "ActionOrderEvaluator",
+    "EnvironmentMetricEvaluator",
     "Evaluator",
     "LLMJudgeEvaluator",
     "OutputContainsEvaluator",
     "OutputEqualsEvaluator",
     "OutputNotContainsEvaluator",
     "OutputRegexEvaluator",
-    "RewardEvaluator",
     "StateEvaluator",
     "StateOperator",
     "compare_value",

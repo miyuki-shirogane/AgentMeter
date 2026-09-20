@@ -119,7 +119,7 @@ fake judge.
 - Forbidden actions
 - State transitions
 - State assertions (nested paths, comparisons, custom predicates)
-- Rewards
+- Environment metrics (named numeric feedback, e.g. `reward` / `quality`)
 - Environment actions (required / forbidden / argument / order)
 
 ### LLM-based
@@ -149,8 +149,14 @@ The generic loop is `Agent -> Action -> Environment -> State -> Agent keeps
 acting`. AgentMeter provides the interface (`Environment`), the generic
 structured state model (`State`), the driving adapter
 (`EnvironmentAgentAdapter`), and deterministic evaluators that inspect the
-resulting trace (`StateEvaluator`, `RewardEvaluator`, and the `Action*`
+resulting trace (`StateEvaluator`, `EnvironmentMetricEvaluator`, and the `Action*`
 evaluators).
+
+`State` describes *what the world looks like* (entities and their fields);
+`ActionResult.metrics` carries *how well an action scored* (named numeric
+feedback such as `{"reward": 299.0}`). The same fact should live in exactly one
+of the two channels — the reference `OrderEnvironment` reports a refund's
+reward as a metric and never duplicates it into the state.
 
 The easiest concrete example to copy is a stateful REST API: each endpoint your
 agent may call becomes an `Action`, and the server's JSON becomes the `State`.
@@ -200,7 +206,7 @@ Implemented:
 - [x] LLM-as-a-Judge over OpenAI-compatible providers
 - [x] Repeated runs with pass-rate aggregation (`run_many`)
 - [x] Environment interface + State model + environment adapter
-- [x] State / reward / action evaluators
+- [x] State / metric / action evaluators
 - [x] Mock order/refund API environment (test/demo only, isolated from core)
 - [x] Robustness / security evaluation (forbidden action/tool, args, OOC, cheat)
 

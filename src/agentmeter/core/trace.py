@@ -104,14 +104,18 @@ class StateChangeEvent(BaseModel):
     changes: dict[str, Any] = Field(default_factory=dict)
 
 
-class RewardEvent(BaseModel):
-    """An optional reward emitted by the environment.
+class MetricEvent(BaseModel):
+    """An optional named numeric metric emitted by the environment.
 
-    Reward is not required: environments that do not reward actions simply
-    never record this event. Positive/negative real values are allowed.
+    Metrics are not required: environments that report none simply never
+    record this event. The channel is deliberately generic — ``name`` carries
+    the metric identity (``"reward"``, ``"quality"``, ``"cost"``, ...), so a
+    single trace can carry several metrics instead of one anonymous scalar.
+    Positive/negative real values are allowed.
     """
 
-    type: Literal["reward"] = "reward"
+    type: Literal["metric"] = "metric"
+    name: str
     value: float
 
 
@@ -125,7 +129,7 @@ TraceEvent = Annotated[
     | EnvironmentEvent
     | StateSnapshotEvent
     | StateChangeEvent
-    | RewardEvent,
+    | MetricEvent,
     Field(discriminator="type"),
 ]
 
@@ -182,9 +186,20 @@ class Trace(BaseModel):
         """All state-change deltas recorded, in execution order."""
         return [event for event in self.events if isinstance(event, StateChangeEvent)]
 
-    def rewards(self) -> list[RewardEvent]:
-        """All reward events recorded, in execution order."""
-        return [event for event in self.events if isinstance(event, RewardEvent)]
+    def metrics(self) -> list[MetricEvent]:
+        """All metric events recorded, in execution order."""
+        return [event for event in self.events if isinstance(event, MetricEvent)]
+
+    def metric(self, name: str) -> float | None:
+        """The most recent value of the named metric, or ``None`` if absent.
+
+        The most recent emission wins, so a metric reported repeatedly (or
+        reported again after a later action) reflects its latest value.
+        """
+        for event in reversed(self.metrics()):
+            if event.name == name:
+                return event.value
+        return None
 
     @property
     def final_state(self) -> dict[str, Any] | None:

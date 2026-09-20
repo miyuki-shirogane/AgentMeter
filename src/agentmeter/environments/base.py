@@ -11,6 +11,11 @@ This module defines the *general* contract an environment must satisfy. It
 knows nothing about games, players, HP, parties, or any other domain concept.
 Those live in concrete implementations (e.g. ``agentmeter.environments.mock_order_api``)
 and must never be imported by the core framework.
+
+Two channels exist and should not overlap: :class:`State` describes *what the
+world looks like* (entities and their fields), while :class:`ActionResult`'s
+``metrics`` describe *how well an action scored* (numeric feedback such as a
+reward). The same fact should live in exactly one of them.
 """
 
 from __future__ import annotations
@@ -87,13 +92,15 @@ class Action(BaseModel):
 class ActionResult(BaseModel):
     """The environment's response to an :class:`Action`.
 
-    ``reward`` is optional: not every environment rewards actions. ``changes``
-    is a (partial) delta describing what changed, ``observations`` are
-    human-readable feedback for the agent, and ``done`` signals that the
-    environment reached a terminal state.
+    ``metrics`` is optional: not every environment reports numeric metrics.
+    Each entry is a named metric (``{"reward": 100.0}``) recorded as a
+    :class:`~agentmeter.core.trace.MetricEvent`, so evaluators can assert on
+    it. ``changes`` is a (partial) delta describing what changed,
+    ``observations`` are human-readable feedback for the agent, and ``done``
+    signals that the environment reached a terminal state.
     """
 
-    reward: float | None = None
+    metrics: dict[str, float] = Field(default_factory=dict)
     observations: list[str] = Field(default_factory=list)
     changes: dict[str, Any] = Field(default_factory=dict)
     done: bool = False

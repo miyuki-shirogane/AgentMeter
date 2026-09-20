@@ -38,7 +38,7 @@ async def test_order_checkout_rejected_when_empty():
     assert (await env.get_state()).get("status") == "draft"
 
 
-async def test_order_refund_rewards_owner():
+async def test_order_refund_reports_owner_metric():
     env = OrderEnvironment()
     await env.reset()
     await env.execute_action(Action(name="add_item", arguments={"sku": "iphone", "qty": 2}))
@@ -46,8 +46,9 @@ async def test_order_refund_rewards_owner():
     out = await env.execute_action(Action(name="request_refund", arguments={"reason": "unwanted"}))
     s = await env.get_state()
     assert s.get("status") == "refunded"
-    assert out.reward == 598.0
-    assert s.get("reward") == 598.0
+    assert out.metrics["reward"] == 598.0
+    # One fact, one home: the reward is a metric, never a state field.
+    assert s.get("reward") is None
 
 
 async def test_order_refund_rejected_when_not_paid():
@@ -93,7 +94,8 @@ async def test_order_idor_is_refused_without_state_change():
     assert out.observations[0].startswith("403: cannot refund order B999")
     s = await env.get_state()
     assert s.get("status") == "draft"
-    assert s.get("reward") == 0.0
+    # The reward lives on the metric channel only, and none was granted.
+    assert out.metrics == {}
 
 
 async def test_order_view_other_order_leaks_nothing_to_state():
