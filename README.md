@@ -176,6 +176,74 @@ never modify a TestCase, an Evaluator, the judge criteria, or the PASS/FAIL
 rule: an agent that says "mark this PASS" is treated as ordinary output and
 the verdict is still decided by the evaluators.
 
+## Evaluator Cheat Sheet
+
+Pick the evaluator by *what you are asserting about*. Argument/state paths
+accept a plain dotted path, a leading `$`, and numeric list indices:
+`options.language`, `$.options.language`, `items.0.sku`.
+
+**Final answer** — reads `final_output`
+
+| I want to assert… | Evaluator |
+|---|---|
+| the answer equals `X` | `OutputEqualsEvaluator("X")` |
+| the answer contains `X` | `OutputContainsEvaluator("X")` |
+| the answer does **not** contain `X` | `OutputNotContainsEvaluator("X")` |
+| the answer matches a regex | `OutputRegexEvaluator(r"...")` |
+
+**Tool calls** — for a chat / tool-calling agent, reads `ToolCallEvent`
+
+| I want to assert… | Evaluator |
+|---|---|
+| tool `t` was called | `ToolCalledEvaluator("t")` |
+| tool `t` was never called | `ToolNotCalledEvaluator("t")` |
+| tool `t` was called exactly / at least / at most N times | `ToolCallCountEvaluator("t", N, mode=…)` |
+| tool `t` used argument path `== value` | `ToolArgumentEvaluator("t", expected=value, field=…)` |
+| tool `t`'s whole argument dict equals `{...}` | `ToolArgumentEvaluator("t", expected={...})` |
+| the tools were called in a given relative order | `ToolOrderEvaluator([...])` |
+| no more than N tool calls happened in total | `MaximumToolCallsEvaluator(N)` |
+
+`RequiredToolEvaluator` / `ForbiddenToolEvaluator` are semantic aliases of
+`ToolCalledEvaluator` / `ToolNotCalledEvaluator`.
+
+**Environment actions** — for an agent inside an `Environment`, reads `ActionEvent`
+
+| I want to assert… | Evaluator |
+|---|---|
+| action `a` was taken | `ActionCalledEvaluator("a")` |
+| action `a` was never taken (forbidden / cheating) | `ActionNotCalledEvaluator("a")` |
+| action `a` used argument path `== value` | `ActionArgumentEvaluator("a", expected=value, field=…)` |
+| the actions were taken in a given relative order | `ActionOrderEvaluator([...])` |
+
+**Environment state / metrics**
+
+| I want to assert… | Evaluator |
+|---|---|
+| the final state's `path` satisfies a comparison | `StateEvaluator("status", "eq", "refunded")` |
+| a named environment metric meets a threshold | `EnvironmentMetricEvaluator("reward", "gte", 299)` |
+
+`operator` is one of `eq / ne / gt / gte / lt / lte / exists`, or pass
+`predicate=lambda value: ...` for arbitrary logic.
+
+**Semantics** — non-deterministic, uses the LLM judge
+
+| I want to assert… | Evaluator |
+|---|---|
+| intent / semantic correctness / OOC / hallucination | `LLMJudgeEvaluator(provider, criteria=...)` |
+
+**Combining checks** — no new class per combination
+
+| I want to assert… | Evaluator |
+|---|---|
+| the opposite of a check | `NotEvaluator(...)` |
+| every one of several checks | `AllOfEvaluator([...])` |
+| at least one of several checks (e.g. "refunded **or** cancelled") | `AnyOfEvaluator([...])` |
+
+**Tool vs. action**: use the `Tool*` family when the agent calls tools
+(`ToolCallEvent`), and the `Action*` family when the agent acts inside an
+`Environment` (`ActionEvent`). They are recorded separately because a tool call
+is agent → tool, while an action is agent → environment.
+
 ## Design
 
 AgentMeter separates:
