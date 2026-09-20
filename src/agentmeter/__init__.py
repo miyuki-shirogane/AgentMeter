@@ -28,6 +28,7 @@ from agentmeter.evaluators.action import (
     ActionOrderEvaluator,
 )
 from agentmeter.evaluators.base import Evaluator
+from agentmeter.evaluators.composite import AllOfEvaluator, AnyOfEvaluator, NotEvaluator
 from agentmeter.evaluators.judge import LLMJudgeEvaluator
 from agentmeter.evaluators.output import (
     OutputContainsEvaluator,
@@ -88,11 +89,14 @@ __all__ = [
     "ActionCalledEvaluator",
     "ActionNotCalledEvaluator",
     "ActionOrderEvaluator",
+    "AllOfEvaluator",
+    "AnyOfEvaluator",
     "EnvironmentMetricEvaluator",
     "Score",
     "Verdict",
     "Evaluator",
     "LLMJudgeEvaluator",
+    "NotEvaluator",
     "OutputContainsEvaluator",
     "OutputEqualsEvaluator",
     "OutputNotContainsEvaluator",
