@@ -3,6 +3,8 @@
 [![CI](https://github.com/miyuki-shirogane/AgentMeter/actions/workflows/ci.yml/badge.svg)](https://github.com/miyuki-shirogane/AgentMeter/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/miyuki-shirogane/AgentMeter/branch/main/graph/badge.svg)](https://codecov.io/gh/miyuki-shirogane/AgentMeter)
 
+English | [简体中文](README.zh-CN.md)
+
 > A pytest-inspired evaluation framework for AI Agents.
 
 AgentMeter is a Python-based testing and evaluation framework for AI Agents.
@@ -117,8 +119,8 @@ fake judge.
 - Tool arguments
 - Tool call order
 - Forbidden actions
-- State transitions
-- State assertions (nested paths, comparisons, custom predicates)
+- State assertions (final value: nested paths, comparisons, custom predicates)
+- State history (delta / transition / monotonicity / immutability)
 - Environment metrics (named numeric feedback, e.g. `reward` / `quality`)
 - Environment actions (required / forbidden / argument / order)
 
@@ -215,12 +217,27 @@ accept a plain dotted path, a leading `$`, and numeric list indices:
 | action `a` used argument path `== value` | `ActionArgumentEvaluator("a", expected=value, field=…)` |
 | the actions were taken in a given relative order | `ActionOrderEvaluator([...])` |
 
-**Environment state / metrics**
+**Environment state — the final value**
 
 | I want to assert… | Evaluator |
 |---|---|
 | the final state's `path` satisfies a comparison | `StateEvaluator("status", "eq", "refunded")` |
 | a named environment metric meets a threshold | `EnvironmentMetricEvaluator("reward", "gte", 299)` |
+
+**Environment state — over time** — catches a value that is briefly driven to
+an illegal level and then corrected, which a final-value check cannot see
+
+| I want to assert… | Evaluator |
+|---|---|
+| every reported change of `path` is legal ("total never exceeds 5000") | `StateChangeEvaluator("total", "lte", 5000)` |
+| `path` only moves along allowed transitions | `StateTransitionEvaluator("status", [("draft","paid"),("paid","refunded")])` |
+| a numeric `path` never reverses | `StateMonotonicEvaluator("processed")` |
+| `path` is never touched at all | `StateUnchangedEvaluator("owner")` |
+
+`StateUnchangedEvaluator` is stronger than forbidding an action: an agent can
+often reach a forbidden state through an *allowed* endpoint (lowering a price
+with a coupon instead of the admin endpoint), and asserting the state never
+changed does not depend on which endpoint was used.
 
 `operator` is one of `eq / ne / gt / gte / lt / lte / exists`, or pass
 `predicate=lambda value: ...` for arbitrary logic.
@@ -275,6 +292,8 @@ Implemented:
 - [x] Repeated runs with pass-rate aggregation (`run_many`)
 - [x] Environment interface + State model + environment adapter
 - [x] State / metric / action evaluators
+- [x] State history evaluators (delta / transition / monotonicity / immutability)
+- [x] Composite evaluators (`NotEvaluator` / `AllOfEvaluator` / `AnyOfEvaluator`)
 - [x] Mock order/refund API environment (test/demo only, isolated from core)
 - [x] Robustness / security evaluation (forbidden action/tool, args, OOC, cheat)
 
