@@ -1,0 +1,77 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened, ready_for_review ]
+    branches: [ main ]
+
+jobs:
+  pr-test:
+    name: PR Test Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: Install dependencies
+        run: uv sync --extra dev --python 3.12
+
+      - name: Run all tests (Gatekeeper)
+        run: |
+          echo "Running tests as PR gatekeeper..."
+          uv run --python 3.12 pytest tests/ -v --tb=short
+          echo "All tests passed! PR is ready for review."
+
+      - name: Check coverage threshold
+        run: |
+          echo "Checking coverage..."
+          uv run --python 3.12 pytest tests/ \
+            --cov=src/agentmeter \
+            --cov-report=term \
+            --cov-fail-under=85
+          echo "Coverage threshold met (>=85%)"
+
+      - name: Add PR comment on success
+        if: success() && github.event.pull_request.head.repo.fork == false
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '**CI Passed**\n\nAll tests passed successfully! This PR is ready for merge.\n\n- Tests: Passed\n- Coverage: >=85%'
+            })
+
+      - name: Add PR comment on failure
+        if: failure() && github.event.pull_request.head.repo.fork == false
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '**CI Failed**\n\nTests failed. Please fix the issues before merging.\n\nCheck the Actions tab for detailed failure logs.'
+            })
+
+  branch-protection-check:
+    name: Branch Protection Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Check branch protection
+        run: |
+          echo "Checking if target branch is protected..."
+          if [[ "${{ github.base_ref }}" == "main" ]]; then
+            echo "Target branch ${{ github.base_ref }} should have branch protection enabled."
+            echo "Ensure required checks are configured in repository settings."
+          fi
