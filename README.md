@@ -1,5 +1,8 @@
 # AgentMeter
 
+[![CI](https://github.com/miyuki-shirogane/AgentMeter/actions/workflows/ci.yml/badge.svg)](https://github.com/miyuki-shirogane/AgentMeter/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/miyuki-shirogane/AgentMeter/branch/main/graph/badge.svg)](https://codecov.io/gh/miyuki-shirogane/AgentMeter)
+
 > A pytest-inspired evaluation framework for AI Agents.
 
 AgentMeter is a Python-based testing and evaluation framework for AI Agents.
