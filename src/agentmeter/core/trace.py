@@ -10,10 +10,11 @@ for translating framework-specific internals into standardized trace events.
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Annotated, Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class UserMessageEvent(BaseModel):
@@ -90,18 +91,45 @@ class EnvironmentEvent(BaseModel):
 
 
 class StateSnapshotEvent(BaseModel):
-    """A full snapshot of the environment's state at a point in time."""
+    """A full snapshot of the environment's state at a point in time.
+
+    ``action_id`` ties the snapshot to the :class:`ActionEvent` that produced
+    it (``None`` for the initial, pre-action snapshot), so history evaluators
+    can attribute a change to a specific action.
+
+    ``state`` is deep-copied on construction: a snapshot must be immutable
+    history, and an environment that mutates its state dict in place would
+    otherwise rewrite every earlier snapshot.
+    """
 
     type: Literal["state_snapshot"] = "state_snapshot"
+    action_id: str | None = None
     state: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("state")
+    @classmethod
+    def _isolate_state(cls, value: dict[str, Any]) -> dict[str, Any]:
+        """Detach the snapshot from the caller's (mutable) state object."""
+        return deepcopy(value)
 
 
 class StateChangeEvent(BaseModel):
-    """A (partial) delta describing how the state changed after an action."""
+    """A (partial) delta describing how the state changed after an action.
+
+    ``changes`` is deep-copied on construction for the same reason as
+    :class:`StateSnapshotEvent`: recorded history must not alias a dict the
+    environment keeps mutating.
+    """
 
     type: Literal["state_change"] = "state_change"
     action_id: str | None = None
     changes: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("changes")
+    @classmethod
+    def _isolate_changes(cls, value: dict[str, Any]) -> dict[str, Any]:
+        """Detach the delta from the caller's (mutable) dict."""
+        return deepcopy(value)
 
 
 class MetricEvent(BaseModel):

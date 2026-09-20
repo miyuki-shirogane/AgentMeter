@@ -42,6 +42,11 @@ class EnvironmentAgentAdapter(AgentAdapter):
         decide: ``(state, trace) -> Action | str``; returning a string ends the
             run and becomes the agent's final output.
         max_steps: safety bound on actions per run to avoid infinite loops.
+
+    Timeline contract: one :class:`StateSnapshotEvent` is recorded after every
+    action (plus one before the first), each tagged with the ``action_id`` it
+    resulted from. History evaluators rely on this one-snapshot-per-action
+    convention.
     """
 
     def __init__(
@@ -95,7 +100,7 @@ class EnvironmentAgentAdapter(AgentAdapter):
                 trace.add_event(MetricEvent(name=name, value=value))
 
             state = await self._environment.get_state()
-            trace.add_event(StateSnapshotEvent(state=state.as_dict()))
+            trace.add_event(StateSnapshotEvent(action_id=action_id, state=state.as_dict()))
 
             if outcome.done:
                 break

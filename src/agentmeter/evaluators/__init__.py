@@ -22,6 +22,12 @@ from agentmeter.evaluators.state import (
     compare_value,
     make_state_predicate,
 )
+from agentmeter.evaluators.state_history import (
+    StateChangeEvaluator,
+    StateMonotonicEvaluator,
+    StateTransitionEvaluator,
+    StateUnchangedEvaluator,
+)
 from agentmeter.evaluators.tool import (
     ToolArgumentEvaluator,
     ToolCallCountEvaluator,
@@ -51,8 +57,12 @@ __all__ = [
     "OutputEqualsEvaluator",
     "OutputNotContainsEvaluator",
     "OutputRegexEvaluator",
+    "StateChangeEvaluator",
     "StateEvaluator",
+    "StateMonotonicEvaluator",
     "StateOperator",
+    "StateTransitionEvaluator",
+    "StateUnchangedEvaluator",
     "compare_value",
     "make_state_predicate",
     "ToolArgumentEvaluator",

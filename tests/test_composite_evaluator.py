@@ -41,6 +41,7 @@ def _trace() -> Trace:
 # NotEvaluator
 # --------------------------------------------------------------------------
 
+
 async def test_not_inverts_pass_to_fail():
     result = await NotEvaluator(_FixedEvaluator(Verdict.PASS)).evaluate(_trace())
     assert result.verdict == Verdict.FAIL
@@ -66,6 +67,7 @@ async def test_not_inverts_score():
 # --------------------------------------------------------------------------
 # AllOfEvaluator
 # --------------------------------------------------------------------------
+
 
 async def test_all_of_passes_when_every_child_passes():
     evaluator = AllOfEvaluator(
@@ -100,6 +102,7 @@ def test_all_of_requires_at_least_one_evaluator():
 # --------------------------------------------------------------------------
 # AnyOfEvaluator
 # --------------------------------------------------------------------------
+
 
 async def test_any_of_passes_when_one_child_passes():
     evaluator = AnyOfEvaluator(
@@ -142,6 +145,7 @@ def test_any_of_requires_at_least_one_evaluator():
 # --------------------------------------------------------------------------
 # Composition with real evaluators
 # --------------------------------------------------------------------------
+
 
 async def test_not_with_real_evaluator():
     trace = Trace(input="in", final_output="好的，我帮你处理")
