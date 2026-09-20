@@ -8,9 +8,8 @@ from typing import Any
 from agentmeter.core.results import EvaluationResult
 from agentmeter.core.trace import ToolCallEvent, Trace
 from agentmeter.core.verdict import Verdict
+from agentmeter.environments.base import UNSET, resolve_path
 from agentmeter.evaluators.base import Evaluator
-
-_MISSING = object()
 
 
 def _tool_calls_named(trace: Trace, name: str) -> list[ToolCallEvent]:
@@ -114,28 +113,17 @@ class ToolCallCountEvaluator(Evaluator):
         )
 
 
-def _get_path(data: dict[str, Any], path: str) -> Any:
-    """Traverse a dotted path like ``options.language`` over a dict.
-
-    Returns :data:`_MISSING` when any segment is absent. This deliberately
-    stays small; a full JSONPath/JMESPath engine is out of scope.
-    """
-    current: Any = data
-    for part in path.split("."):
-        if not isinstance(current, dict) or part not in current:
-            return _MISSING
-        current = current[part]
-    return current
-
-
 class ToolArgumentEvaluator(Evaluator):
     """Checks the arguments of a named tool call.
 
     With ``field=None`` the whole arguments dict must equal ``expected``
-    (exact match). With ``field="query"`` or ``field="options.language"``
-    only that (possibly nested) field is compared. The tool may be called
-    multiple times: the evaluator passes when at least one call satisfies
-    the expectation.
+    (exact match). With ``field="query"``, ``field="$.options.language"`` or
+    ``field="items.0.sku"`` only that (possibly nested or list-indexed) field
+    is compared — the same path syntax used by
+    :class:`~agentmeter.evaluators.action.ActionArgumentEvaluator` and
+    :class:`~agentmeter.evaluators.state.StateEvaluator`. The tool may be
+    called multiple times: the evaluator passes when at least one call
+    satisfies the expectation.
     """
 
     def __init__(self, name: str, expected: Any, field: str | None = None) -> None:
@@ -161,8 +149,8 @@ class ToolArgumentEvaluator(Evaluator):
                     matched = True
                     break
             else:
-                actual = _get_path(call.arguments, self._field)
-                if actual is not _MISSING and actual == self._expected:
+                actual = resolve_path(call.arguments, self._field)
+                if actual is not UNSET and actual == self._expected:
                     matched = True
                     break
 

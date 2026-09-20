@@ -122,6 +122,23 @@ async def test_tool_argument_nested_field_mismatch():
     assert result.passed is False
 
 
+async def test_tool_argument_field_supports_dollar_prefix():
+    """Same path syntax as ActionArgumentEvaluator / StateEvaluator."""
+    trace = _trace_with_calls([("search", {"options": {"language": "zh"}})])
+    result = await ToolArgumentEvaluator(
+        "search", expected="zh", field="$.options.language"
+    ).evaluate(trace)
+    assert result.passed is True
+
+
+async def test_tool_argument_field_supports_list_index():
+    trace = _trace_with_calls([("search", {"items": [{"sku": "iphone"}]})])
+    result = await ToolArgumentEvaluator("search", expected="iphone", field="items.0.sku").evaluate(
+        trace
+    )
+    assert result.passed is True
+
+
 async def test_tool_argument_missing_field_fails():
     trace = _trace_with_calls([("search", {"query": "Python"})])
     result = await ToolArgumentEvaluator(
