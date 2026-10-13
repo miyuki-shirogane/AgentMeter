@@ -62,10 +62,12 @@ python examples/judge_demo.py
 python examples/mixed_demo.py
 python examples/environment_demo.py
 python examples/security_demo.py
+python examples/fixed_eval_set_demo.py
 ```
 
 这些 demo 是层层递进的：最小化的输出断言 → 工具调用断言 → LLM 裁判 →
-把各类 evaluator 混在一个用例里 → 在环境中行动的 Agent → 鲁棒性/安全演示。
+把各类 evaluator 混在一个用例里 → 在环境中行动的 Agent → 鲁棒性/安全演示 →
+带分组通过率门禁的固定评测集。
 
 ### 配置 LLM 裁判
 
@@ -94,6 +96,11 @@ cp .env.example .env    # 然后填上 DEEPSEEK_API_KEY
 - **整体 `score`**：所有 evaluator 的平均分（仅供参考，**不驱动判定**）。
 - **重复运行**：`Runner.run_many(testcase, runs, required_pass_rate)`
   返回 `AggregateResult`，含通过率、错误率与平均分。
+
+## 文档
+
+- [固定评测集 + CI 门禁](docs/fixed-eval-set-and-ci.md)：把样本冻结成表、按风险分组、分两档接进 CI。
+- [环境与安全测试实战](docs/environment-and-security.md)：用一个订单系统讲清 Environment / Action / State，以及越权、作弊、泄露的测法。
 
 ## 技术栈
 

@@ -62,11 +62,13 @@ python examples/judge_demo.py
 python examples/mixed_demo.py
 python examples/environment_demo.py
 python examples/security_demo.py
+python examples/fixed_eval_set_demo.py
 ```
 
 The demos build on each other: a minimal output check, tool-call checks, an
 LLM judge, a mixed test case combining every evaluator kind, an agent that
-acts inside an environment, and a robustness/security demo.
+acts inside an environment, a robustness/security demo, and a grouped fixed
+evaluation set with CI-style pass-rate gates.
 
 ### Configuring the LLM judge
 
@@ -98,6 +100,14 @@ fake judge.
   not drive the verdict).
 - Repeated runs: `Runner.run_many(testcase, runs, required_pass_rate)`
   returns an `AggregateResult` with pass rate, error rate and average score.
+
+## Documentation
+
+- [Fixed evaluation sets + CI gates](docs/fixed-eval-set-and-ci.md) (中文): freeze
+  samples into a table, group by risk, wire two CI tiers.
+- [Environment & security testing in practice](docs/environment-and-security.md)
+  (中文): model an order backend as an Environment and test for privilege
+  escalation, price cheating and leakage.
 
 ## Tech Stack
 

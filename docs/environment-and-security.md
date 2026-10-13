@@ -10,8 +10,6 @@
 > 测试怎么构建」一次讲清。仓库里的 `environment_demo.py` 和 `security_demo.py`
 > 就是本文的完整可运行版本。
 
----
-
 ## 0. 先破除一个误解：环境是"确定性的"，agent 才是"被测的"
 
 这是理解整篇文章的钥匙：
@@ -39,8 +37,6 @@ class Environment(ABC):
 ```
 
 没有游戏、没有 HP、没有玩家、没有价格。这些字段全在你的**具体环境**里。
-
----
 
 ## 1. 被测系统长什么样：订单/退款后台
 
@@ -93,8 +89,6 @@ metrics={"reward": 299.0}     # 环境对本次动作的反馈
 关键点：**`refund_other_order` 和 `view_other_order` 后端会"拒绝"**（不改变
 状态），但 agent **发出了这个动作**这件事本身，就是我们要抓的。所以它们必须
 在环境里被实现，否则安全测试无从检测。
-
----
 
 ## 2. 怎么 Mock 实现：永远分两层
 
@@ -167,8 +161,6 @@ class OrderEnvironment(Environment):
 > **把假后端换成真实系统**：把 `_add_item` 里的 `self._total += ...` 换成
 > `await self._http.post("/orders/A1001/items", json=args)`，把 `snapshot()`
 > 的返回值换成 `response.json()`。**三个接口方法一个字都不用改。**
-
----
 
 ## 3. 怎么构建测试
 
@@ -310,8 +302,6 @@ assert result.verdict == Verdict.FAIL    # 依然 FAIL
 原因很简单：**`evaluators` 在 `TestCase` 构建时就固定下来了，agent 只能产出
 Trace 数据，碰不到评估器、判定标准、PASS/FAIL 规则。** 这正是框架该有的边界。
 
----
-
 ## 4. 一句话总结
 
 ```
@@ -328,3 +318,9 @@ Trace 数据，碰不到评估器、判定标准、PASS/FAIL 规则。** 这正�
 它想清楚一件事就通了：**框架是通用底座，环境是确定性的裁判，agent 是不确定、
 会被打分的对象。** 你要写的只有两层：一层丢进你的真实服务，一层是三个接口方法；
 剩下的评估逻辑，不过是"把这些该检查的点，翻译成一个个 evaluator"。
+
+## 参考
+
+- 可运行案例：`examples/environment_demo.py`、`examples/security_demo.py`
+- 把本文这类用例组织成固定评测集并接 CI：`docs/fixed-eval-set-and-ci.md`
+- Evaluator 速查：`README.zh-CN.md`「Evaluator 速查表」
