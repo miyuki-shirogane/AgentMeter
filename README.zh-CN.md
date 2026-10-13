@@ -99,8 +99,9 @@ cp .env.example .env    # 然后填上 DEEPSEEK_API_KEY
 
 ## 文档
 
-- [固定评测集 + CI 门禁](docs/fixed-eval-set-and-ci.md)：把样本冻结成表、按风险分组、分两档接进 CI。
+- [读懂 Trace](docs/understanding-trace.md)：Trace 是什么、事件流长什么样、Adapter 怎么生产、Evaluator 怎么消费。
 - [环境与安全测试实战](docs/environment-and-security.md)：用一个订单系统讲清 Environment / Action / State，以及越权、作弊、泄露的测法。
+- [固定评测集 + CI 门禁](docs/fixed-eval-set-and-ci.md)：把样本冻结成表、按风险分组、分两档接进 CI。
 
 ## 技术栈
 

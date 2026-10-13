@@ -103,11 +103,13 @@ fake judge.
 
 ## Documentation
 
-- [Fixed evaluation sets + CI gates](docs/fixed-eval-set-and-ci.md) (中文): freeze
-  samples into a table, group by risk, wire two CI tiers.
+- [Understanding Trace](docs/understanding-trace.md) (中文): what a Trace is, its
+  event stream, and how adapters produce / evaluators consume it.
 - [Environment & security testing in practice](docs/environment-and-security.md)
   (中文): model an order backend as an Environment and test for privilege
   escalation, price cheating and leakage.
+- [Fixed evaluation sets + CI gates](docs/fixed-eval-set-and-ci.md) (中文): freeze
+  samples into a table, group by risk, wire two CI tiers.
 
 ## Tech Stack
 
